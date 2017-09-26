@@ -1,16 +1,19 @@
 <!doctype>
 <html>
 <head>
-   <title>Decode pdf & Apply by API</title>
+   <title>Decode file to base64 string & Apply by API</title>
 
    <script src="http://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
    <link rel="stylesheet" href="https://unpkg.com/purecss@1.0.0/build/pure-min.css" integrity="sha384-nn4HPE8lTHyVtfCBi5yW9d20FjT8BJwUXyWZT9InLYax14RDjBj46LmSztkmNP9w" crossorigin="anonymous">
    <meta name="viewport" content="width=device-width, initial-scale=1">
 
 </head>
-<body>
+<body style="padding: 20px">
   
   <div>
+    <blockquote>Hello, you can decode file to base64 string by upload file at "Resume Convert".<br>
+    Fill out your info accordingly to send POST request to apply via API at - https://www.perka.com/about/#join <br>
+    You will have access to global variables in console "response" if POST request succeed, or "applyXHR", "applyError" & "applyStatus" if failed. </blockquote>
     <form class="pure-form pure-form-stacked">
       <fieldset>
         <Legend>Enter candidate information</Legend>
@@ -40,8 +43,8 @@
           </div>
 
           <div class="pure-u-1-3">
-              <label for="explanation">explanation</label>
-              <input type="text" id="Explanation" class="pure-u-23-24">
+              <label for="explanation">Explanation</label>
+              <input type="text" id="explanation" class="pure-u-23-24">
           </div>
 
           <div class="pure-u-1-3">
@@ -52,7 +55,7 @@
 
           <div class="pure-u-1-1">
             <label for="projects">Projects: </label>
-            <textarea id="projects" placeholder="one project per line" class="pure-u-23-24"></textarea>
+            <textarea id="projects" placeholder="one project per line, info will be converted into array " class="pure-u-23-24"></textarea>
           </div>
 
         </div>
@@ -89,9 +92,10 @@
         var applyXHR;
         var applyError;
         var applyStatus;
+        var base64;
 
         function copyString(){    
-            var copyText = document.querySelector('#result');
+            var copyText = document.querySelector('#resume');
             copyText.select();
 
             try {
@@ -105,14 +109,14 @@
         function testApply(){
           let result = document.getElementById("application");
           applicationPerka = {
-            first_name: $('#first_name').val(),
-            last_name: $('#last_name').val(),
-            email: $('#email').val(),
-            position_id: $('#position_id').val(),
-            explanation: $('#explanation').val(),
-            projects: $('#projects').val().split('\n'),
-            source: $('#source').val(),
-            resume: $('#resume').val(),
+            "first_name": $('#first_name').val(),
+            "last_name": $('#last_name').val(),
+            "email": $('#email').val(),
+            "position_id": $('#position_id').val(),
+            "explanation": $('#explanation').val(),
+            "projects": $('#projects').val().split('\n'),
+            "source": $('#source').val(),
+            "resume": base64
           };
 
           let displayR = JSON.stringify(applicationPerka);
@@ -122,10 +126,16 @@
         function applyViaAPI(){
           let url = 'https://api.perka.com/1/communication/job/apply';
 
-          $.post(url, applicationPerka).done( result => {
+          $.ajax({
+            url: url,
+            type: "POST",
+            data: JSON.stringify(applicationPerka),
+            datatype: "json",
+            contentType: "application/json"
+          }).done(result => {
             console.log(result);
             response = result;
-          }).fail( (xhr, status, error)=> {
+          }).fail((xhr, status, error)=> {
             console.log("error occurred");
             console.log(xhr.statusText);
             console.log(status);
@@ -147,16 +157,20 @@
             var fileToLoad = selectedFile[0];
             // FileReader function to read the file.
             var fileReader = new FileReader();
-            var base64;
+           
             // Onload of file read the file content
             fileReader.onload = function(fileLoadedEvent) {
-                base64 = fileLoadedEvent.target.result;
+                //display data in iframe needs the full information including the header with data:application/pdf;base64,
+                let data = fileLoadedEvent.target.result;
+
+                //API only takes base64 part, thus below line strip all the extraneous letters and symbols
+                base64 = data.replace(/^[^,]*,/, '');
               
                 let resume = document.getElementById("resume");
                 resume.value = base64;
   
                 let displayResult = document.getElementById("result-file");
-                displayResult.src = base64;
+                displayResult.src = data;
               
             };
             // Convert data to base64
